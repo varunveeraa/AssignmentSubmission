@@ -1,15 +1,12 @@
 /**
  * Annotations API - Netlify Function
- * V2: Uses Netlify Blobs for NoSQL storage
+ * V2: Simple in-memory storage for testing
  * 
- * Endpoints:
- * GET  /.netlify/functions/annotations      - Get all annotations
- * POST /.netlify/functions/annotations      - Create annotation
- * DELETE /.netlify/functions/annotations?id=xxx - Delete annotation
+ * Note: This stores data in memory - will reset on each deploy/cold start
+ * TODO: Switch back to Netlify Blobs once confirmed working
  */
 
 import type { Handler } from "@netlify/functions";
-import { getStore } from "@netlify/blobs";
 
 interface Annotation {
     id: string;
@@ -18,8 +15,9 @@ interface Annotation {
     createdAt: number;
 }
 
-const STORE_NAME = "annotations";
-const INDEX_KEY = "annotation-index";
+// In-memory storage (temporary for debugging)
+// In production, this would use Netlify Blobs
+const annotations: Map<string, Annotation> = new Map();
 
 const headers = {
     "Content-Type": "application/json",
@@ -29,50 +27,22 @@ const headers = {
 };
 
 export const handler: Handler = async (event) => {
+    console.log("Function invoked:", event.httpMethod);
+
     // Handle CORS preflight
     if (event.httpMethod === "OPTIONS") {
         return { statusCode: 204, headers, body: "" };
     }
 
     try {
-        // Initialize store - siteID is automatically provided in deployed functions
-        const store = getStore(STORE_NAME);
-
         // GET - Fetch all annotations
         if (event.httpMethod === "GET") {
-            console.log("GET: Loading annotations...");
-
-            let ids: string[] = [];
-            try {
-                const indexData = await store.get(INDEX_KEY, { type: "json" });
-                ids = (indexData as string[]) || [];
-                console.log("GET: Found index with", ids.length, "IDs");
-            } catch (e) {
-                console.log("GET: No existing index, returning empty");
-                return {
-                    statusCode: 200,
-                    headers,
-                    body: JSON.stringify({ annotations: [] }),
-                };
-            }
-
-            const annotations: Annotation[] = [];
-            for (const id of ids) {
-                try {
-                    const annotation = await store.get(id, { type: "json" });
-                    if (annotation) {
-                        annotations.push(annotation as Annotation);
-                    }
-                } catch (e) {
-                    console.log(`GET: Failed to load annotation ${id}`);
-                }
-            }
-
-            console.log(`GET: Returning ${annotations.length} annotations`);
+            const allAnnotations = Array.from(annotations.values());
+            console.log("GET: Returning", allAnnotations.length, "annotations");
             return {
                 statusCode: 200,
                 headers,
-                body: JSON.stringify({ annotations }),
+                body: JSON.stringify({ annotations: allAnnotations }),
             };
         }
 
@@ -109,23 +79,8 @@ export const handler: Handler = async (event) => {
             }
 
             // Save annotation
-            await store.setJSON(annotation.id, annotation);
-            console.log("POST: Saved annotation data");
-
-            // Update index
-            let ids: string[] = [];
-            try {
-                const indexData = await store.get(INDEX_KEY, { type: "json" });
-                ids = (indexData as string[]) || [];
-            } catch {
-                ids = [];
-            }
-
-            if (!ids.includes(annotation.id)) {
-                ids.push(annotation.id);
-                await store.setJSON(INDEX_KEY, ids);
-                console.log("POST: Updated index, now has", ids.length, "IDs");
-            }
+            annotations.set(annotation.id, annotation);
+            console.log("POST: Saved. Total annotations:", annotations.size);
 
             return {
                 statusCode: 201,
@@ -147,20 +102,8 @@ export const handler: Handler = async (event) => {
                 };
             }
 
-            // Delete annotation
-            await store.delete(id);
-
-            // Update index
-            let ids: string[] = [];
-            try {
-                const indexData = await store.get(INDEX_KEY, { type: "json" });
-                ids = (indexData as string[]) || [];
-            } catch {
-                ids = [];
-            }
-            const updatedIds = ids.filter((i) => i !== id);
-            await store.setJSON(INDEX_KEY, updatedIds);
-            console.log("DELETE: Index now has", updatedIds.length, "IDs");
+            annotations.delete(id);
+            console.log("DELETE: Done. Remaining:", annotations.size);
 
             return {
                 statusCode: 200,
