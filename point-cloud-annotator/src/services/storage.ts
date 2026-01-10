@@ -1,8 +1,20 @@
+/**
+ * Storage Service
+ * Handles persistence of annotations to localStorage with validation
+ */
+
 import type { Annotation, AnnotationStore } from '../types/annotation';
+import { STORAGE } from '../constants';
 
-const STORAGE_KEY = 'point-cloud-annotations';
-const MAX_TEXT_BYTES = 256;
+const STORAGE_KEY = STORAGE.KEY;
+const MAX_TEXT_BYTES = STORAGE.MAX_TEXT_BYTES;
 
+/**
+ * Validates and truncates text to fit within byte limit.
+ * Handles multi-byte UTF-8 characters safely.
+ * @param text - The input text to validate
+ * @returns Truncated text that fits within MAX_TEXT_BYTES (256 bytes)
+ */
 export function validateText(text: string): string {
     const encoder = new TextEncoder();
     const encoded = encoder.encode(text);
@@ -27,6 +39,10 @@ export function validateText(text: string): string {
     return '';
 }
 
+/**
+ * Loads all annotations from localStorage.
+ * @returns Array of annotations, or empty array if none exist or on error
+ */
 export function loadAnnotations(): Annotation[] {
     try {
         const data = localStorage.getItem(STORAGE_KEY);
@@ -40,11 +56,15 @@ export function loadAnnotations(): Annotation[] {
     }
 }
 
+/**
+ * Saves annotations to localStorage.
+ * @param annotations - Array of annotations to persist
+ */
 export function saveAnnotations(annotations: Annotation[]): void {
     try {
         const store: AnnotationStore = {
             annotations,
-            version: 1,
+            version: STORAGE.VERSION,
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
     } catch (error) {
@@ -52,6 +72,11 @@ export function saveAnnotations(annotations: Annotation[]): void {
     }
 }
 
+/**
+ * Adds a new annotation and persists to storage.
+ * @param annotation - The annotation to add
+ * @returns Updated array of all annotations
+ */
 export function addAnnotation(annotation: Annotation): Annotation[] {
     const annotations = loadAnnotations();
     const validatedAnnotation = {
@@ -63,12 +88,23 @@ export function addAnnotation(annotation: Annotation): Annotation[] {
     return annotations;
 }
 
+/**
+ * Deletes an annotation by ID and persists the change.
+ * @param id - The unique identifier of the annotation to delete
+ * @returns Updated array of remaining annotations
+ */
 export function deleteAnnotation(id: string): Annotation[] {
     const annotations = loadAnnotations().filter(a => a.id !== id);
     saveAnnotations(annotations);
     return annotations;
 }
 
+/**
+ * Updates an existing annotation and persists the change.
+ * @param id - The unique identifier of the annotation to update
+ * @param updates - Partial annotation object with fields to update
+ * @returns Updated array of all annotations
+ */
 export function updateAnnotation(id: string, updates: Partial<Annotation>): Annotation[] {
     const annotations = loadAnnotations().map(a => {
         if (a.id === id) {

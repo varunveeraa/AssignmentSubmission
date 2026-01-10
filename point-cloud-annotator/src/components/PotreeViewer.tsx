@@ -1,7 +1,8 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { Annotation } from '../types/annotation';
+import { POINT_CLOUD, ANNOTATION_MARKER, CAMERA, SCENE, LIGHTS } from '../constants';
 
 interface PotreeViewerProps {
     annotations: Annotation[];
@@ -10,9 +11,9 @@ interface PotreeViewerProps {
     onAnnotationClick: (id: string) => void;
 }
 
-// Create a sample point cloud (since we can't load LAZ directly without more setup)
+// Create a sample point cloud (lion-like shape)
 function createSamplePointCloud(scene: THREE.Scene, pointCloudRef: React.MutableRefObject<THREE.Points | null>) {
-    const numPoints = 100000;
+    const numPoints = POINT_CLOUD.NUM_POINTS;
     const positions = new Float32Array(numPoints * 3);
     const colors = new Float32Array(numPoints * 3);
 
@@ -64,7 +65,7 @@ function createSamplePointCloud(scene: THREE.Scene, pointCloudRef: React.Mutable
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     const material = new THREE.PointsMaterial({
-        size: 0.05,
+        size: POINT_CLOUD.POINT_SIZE,
         vertexColors: true,
         sizeAttenuation: true,
     });
@@ -72,6 +73,72 @@ function createSamplePointCloud(scene: THREE.Scene, pointCloudRef: React.Mutable
     const points = new THREE.Points(geometry, material);
     scene.add(points);
     pointCloudRef.current = points;
+}
+
+// Create annotation marker mesh
+function createMarkerMesh(): THREE.Mesh {
+    const geometry = new THREE.SphereGeometry(
+        ANNOTATION_MARKER.SIZE,
+        ANNOTATION_MARKER.SEGMENTS,
+        ANNOTATION_MARKER.SEGMENTS
+    );
+    const material = new THREE.MeshPhongMaterial({
+        color: ANNOTATION_MARKER.COLOR_DEFAULT,
+        emissive: ANNOTATION_MARKER.COLOR_DEFAULT,
+        emissiveIntensity: ANNOTATION_MARKER.EMISSIVE_INTENSITY,
+        transparent: true,
+        opacity: ANNOTATION_MARKER.OPACITY,
+    });
+    return new THREE.Mesh(geometry, material);
+}
+
+// Update annotation markers in the scene
+function updateAnnotationMarkers(
+    scene: THREE.Scene,
+    annotations: Annotation[],
+    selectedAnnotation: string | null,
+    markersRef: React.MutableRefObject<Map<string, THREE.Mesh>>
+) {
+    const existingMarkers = markersRef.current;
+
+    // Remove markers that no longer exist
+    existingMarkers.forEach((marker, id) => {
+        if (!annotations.find(a => a.id === id)) {
+            scene.remove(marker);
+            existingMarkers.delete(id);
+        }
+    });
+
+    // Add or update markers
+    annotations.forEach(annotation => {
+        let marker = existingMarkers.get(annotation.id);
+
+        if (!marker) {
+            marker = createMarkerMesh();
+            marker.userData.annotationId = annotation.id;
+            scene.add(marker);
+            existingMarkers.set(annotation.id, marker);
+        }
+
+        // Update position
+        marker.position.set(
+            annotation.position.x,
+            annotation.position.y,
+            annotation.position.z
+        );
+
+        // Highlight selected
+        const material = marker.material as THREE.MeshPhongMaterial;
+        if (selectedAnnotation === annotation.id) {
+            material.color.setHex(ANNOTATION_MARKER.COLOR_SELECTED);
+            material.emissive.setHex(ANNOTATION_MARKER.COLOR_SELECTED);
+            marker.scale.setScalar(ANNOTATION_MARKER.SCALE_SELECTED);
+        } else {
+            material.color.setHex(ANNOTATION_MARKER.COLOR_DEFAULT);
+            material.emissive.setHex(ANNOTATION_MARKER.COLOR_DEFAULT);
+            marker.scale.setScalar(ANNOTATION_MARKER.SCALE_DEFAULT);
+        }
+    });
 }
 
 export function PotreeViewer({
@@ -89,7 +156,6 @@ export function PotreeViewer({
     const annotationMarkersRef = useRef<Map<string, THREE.Mesh>>(new Map());
     const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster());
     const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2());
-    const [sceneReady, setSceneReady] = useState(false);
 
     // Initialize Three.js scene
     useEffect(() => {
@@ -101,12 +167,17 @@ export function PotreeViewer({
 
         // Scene
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a1a2e);
+        scene.background = new THREE.Color(SCENE.BACKGROUND_COLOR);
         sceneRef.current = scene;
 
         // Camera
-        const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
-        camera.position.set(5, 5, 5);
+        const camera = new THREE.PerspectiveCamera(
+            CAMERA.FOV,
+            width / height,
+            CAMERA.NEAR,
+            CAMERA.FAR
+        );
+        camera.position.set(CAMERA.POSITION.x, CAMERA.POSITION.y, CAMERA.POSITION.z);
         cameraRef.current = camera;
 
         // Renderer
@@ -119,21 +190,30 @@ export function PotreeViewer({
         // Controls
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.minDistance = 1;
-        controls.maxDistance = 100;
+        controls.dampingFactor = CAMERA.DAMPING_FACTOR;
+        controls.minDistance = CAMERA.MIN_DISTANCE;
+        controls.maxDistance = CAMERA.MAX_DISTANCE;
         controlsRef.current = controls;
 
         // Lights
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        const ambientLight = new THREE.AmbientLight(0xffffff, LIGHTS.AMBIENT_INTENSITY);
         scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(10, 10, 10);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, LIGHTS.DIRECTIONAL_INTENSITY);
+        directionalLight.position.set(
+            LIGHTS.DIRECTIONAL_POSITION.x,
+            LIGHTS.DIRECTIONAL_POSITION.y,
+            LIGHTS.DIRECTIONAL_POSITION.z
+        );
         scene.add(directionalLight);
 
         // Grid helper
-        const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x333333);
+        const gridHelper = new THREE.GridHelper(
+            SCENE.GRID_SIZE,
+            SCENE.GRID_DIVISIONS,
+            SCENE.GRID_COLOR_CENTER,
+            SCENE.GRID_COLOR_GRID
+        );
         scene.add(gridHelper);
 
         // Create sample point cloud (lion-like shape)
@@ -158,9 +238,6 @@ export function PotreeViewer({
         };
         window.addEventListener('resize', handleResize);
 
-        // Mark scene as ready to trigger annotation rendering
-        setSceneReady(true);
-
         return () => {
             window.removeEventListener('resize', handleResize);
             controls.dispose();
@@ -169,62 +246,16 @@ export function PotreeViewer({
         };
     }, []);
 
-    // Update annotation markers - runs when scene is ready or annotations change
+    // Update annotation markers - sync with scene
     useEffect(() => {
-        if (!sceneReady) return;
         if (!sceneRef.current) return;
-
-        const scene = sceneRef.current;
-        const existingMarkers = annotationMarkersRef.current;
-
-        // Remove markers that no longer exist
-        existingMarkers.forEach((marker, id) => {
-            if (!annotations.find(a => a.id === id)) {
-                scene.remove(marker);
-                existingMarkers.delete(id);
-            }
-        });
-
-        // Add or update markers
-        annotations.forEach(annotation => {
-            let marker = existingMarkers.get(annotation.id);
-
-            if (!marker) {
-                // Create new marker
-                const geometry = new THREE.SphereGeometry(0.15, 16, 16);
-                const material = new THREE.MeshPhongMaterial({
-                    color: 0x00ff88,
-                    emissive: 0x00ff88,
-                    emissiveIntensity: 0.3,
-                    transparent: true,
-                    opacity: 0.9,
-                });
-                marker = new THREE.Mesh(geometry, material);
-                marker.userData.annotationId = annotation.id;
-                scene.add(marker);
-                existingMarkers.set(annotation.id, marker);
-            }
-
-            // Update position
-            marker.position.set(
-                annotation.position.x,
-                annotation.position.y,
-                annotation.position.z
-            );
-
-            // Highlight selected
-            const material = marker.material as THREE.MeshPhongMaterial;
-            if (selectedAnnotation === annotation.id) {
-                material.color.setHex(0xff4488);
-                material.emissive.setHex(0xff4488);
-                marker.scale.setScalar(1.5);
-            } else {
-                material.color.setHex(0x00ff88);
-                material.emissive.setHex(0x00ff88);
-                marker.scale.setScalar(1);
-            }
-        });
-    }, [sceneReady, annotations, selectedAnnotation]);
+        updateAnnotationMarkers(
+            sceneRef.current,
+            annotations,
+            selectedAnnotation,
+            annotationMarkersRef
+        );
+    }, [annotations, selectedAnnotation]);
 
     // Handle click events
     const handleClick = useCallback((event: React.MouseEvent) => {
@@ -267,8 +298,11 @@ export function PotreeViewer({
                 ref={containerRef}
                 className="potree-viewer"
                 onClick={handleClick}
+                role="application"
+                aria-label="3D Point Cloud Viewer - Click to add annotations"
+                tabIndex={0}
             />
-            <div className="viewer-instructions">
+            <div className="viewer-instructions" aria-live="polite">
                 <p>🖱️ Click on the point cloud to add annotations</p>
                 <p>🔄 Drag to rotate • Scroll to zoom • Right-click to pan</p>
             </div>
