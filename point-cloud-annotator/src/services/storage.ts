@@ -1,33 +1,32 @@
 /**
  * Storage Service
- * Handles persistence of annotations to localStorage with validation
+ * Handles annotation persistence - automatically switches between:
+ * - localStorage (V1, default)
+ * - REST API (V2: Netlify Blobs, V3: AWS DynamoDB)
+ * 
+ * Set VITE_STORAGE_PROVIDER=api to use backend
  */
 
 import type { Annotation, AnnotationStore } from '../types/annotation';
 import { STORAGE } from '../constants';
 
-const STORAGE_KEY = STORAGE.KEY;
-const MAX_TEXT_BYTES = STORAGE.MAX_TEXT_BYTES;
+const USE_API = import.meta.env.VITE_STORAGE_PROVIDER === 'api';
+const API_URL = import.meta.env.VITE_API_URL || '/.netlify/functions/annotations';
 
 /**
  * Validates and truncates text to fit within byte limit.
- * Handles multi-byte UTF-8 characters safely.
- * @param text - The input text to validate
- * @returns Truncated text that fits within MAX_TEXT_BYTES (256 bytes)
  */
 export function validateText(text: string): string {
     const encoder = new TextEncoder();
     const encoded = encoder.encode(text);
 
-    if (encoded.length <= MAX_TEXT_BYTES) {
+    if (encoded.length <= STORAGE.MAX_TEXT_BYTES) {
         return text;
     }
 
-    // Truncate to fit within byte limit
     const decoder = new TextDecoder();
-    let truncated = encoded.slice(0, MAX_TEXT_BYTES);
+    let truncated = encoded.slice(0, STORAGE.MAX_TEXT_BYTES);
 
-    // Handle potential multi-byte character cut-off
     while (truncated.length > 0) {
         try {
             return decoder.decode(truncated);
@@ -39,83 +38,120 @@ export function validateText(text: string): string {
     return '';
 }
 
-/**
- * Loads all annotations from localStorage.
- * @returns Array of annotations, or empty array if none exist or on error
- */
-export function loadAnnotations(): Annotation[] {
-    try {
-        const data = localStorage.getItem(STORAGE_KEY);
-        if (!data) return [];
+// ============================================
+// localStorage Implementation (V1)
+// ============================================
 
+function loadFromLocalStorage(): Annotation[] {
+    try {
+        const data = localStorage.getItem(STORAGE.KEY);
+        if (!data) return [];
         const store: AnnotationStore = JSON.parse(data);
         return store.annotations || [];
     } catch (error) {
-        console.error('Failed to load annotations:', error);
+        console.error('Failed to load from localStorage:', error);
         return [];
     }
 }
 
-/**
- * Saves annotations to localStorage.
- * @param annotations - Array of annotations to persist
- */
-export function saveAnnotations(annotations: Annotation[]): void {
+function saveToLocalStorage(annotations: Annotation[]): void {
     try {
-        const store: AnnotationStore = {
-            annotations,
-            version: STORAGE.VERSION,
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+        const store: AnnotationStore = { annotations, version: STORAGE.VERSION };
+        localStorage.setItem(STORAGE.KEY, JSON.stringify(store));
     } catch (error) {
-        console.error('Failed to save annotations:', error);
+        console.error('Failed to save to localStorage:', error);
     }
 }
 
-/**
- * Adds a new annotation and persists to storage.
- * @param annotation - The annotation to add
- * @returns Updated array of all annotations
- */
-export function addAnnotation(annotation: Annotation): Annotation[] {
-    const annotations = loadAnnotations();
-    const validatedAnnotation = {
-        ...annotation,
-        text: validateText(annotation.text),
-    };
-    annotations.push(validatedAnnotation);
-    saveAnnotations(annotations);
+// ============================================
+// API Implementation (V2/V3)
+// ============================================
+
+async function loadFromAPI(): Promise<Annotation[]> {
+    try {
+        const response = await fetch(API_URL);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        return data.annotations || data || [];
+    } catch (error) {
+        console.error('Failed to load from API:', error);
+        return [];
+    }
+}
+
+async function addToAPI(annotation: Annotation): Promise<void> {
+    const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(annotation),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+}
+
+async function deleteFromAPI(id: string): Promise<void> {
+    const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+}
+
+// ============================================
+// Public API (auto-switches based on config)
+// ============================================
+
+export async function loadAnnotations(): Promise<Annotation[]> {
+    if (USE_API) {
+        return loadFromAPI();
+    }
+    return loadFromLocalStorage();
+}
+
+export async function addAnnotation(annotation: Annotation): Promise<Annotation[]> {
+    const validated = { ...annotation, text: validateText(annotation.text) };
+
+    if (USE_API) {
+        await addToAPI(validated);
+        return loadFromAPI();
+    }
+
+    const annotations = loadFromLocalStorage();
+    annotations.push(validated);
+    saveToLocalStorage(annotations);
     return annotations;
 }
 
-/**
- * Deletes an annotation by ID and persists the change.
- * @param id - The unique identifier of the annotation to delete
- * @returns Updated array of remaining annotations
- */
-export function deleteAnnotation(id: string): Annotation[] {
-    const annotations = loadAnnotations().filter(a => a.id !== id);
-    saveAnnotations(annotations);
+export async function deleteAnnotation(id: string): Promise<Annotation[]> {
+    if (USE_API) {
+        await deleteFromAPI(id);
+        return loadFromAPI();
+    }
+
+    const annotations = loadFromLocalStorage().filter(a => a.id !== id);
+    saveToLocalStorage(annotations);
     return annotations;
 }
 
-/**
- * Updates an existing annotation and persists the change.
- * @param id - The unique identifier of the annotation to update
- * @param updates - Partial annotation object with fields to update
- * @returns Updated array of all annotations
- */
-export function updateAnnotation(id: string, updates: Partial<Annotation>): Annotation[] {
-    const annotations = loadAnnotations().map(a => {
+export async function updateAnnotation(id: string, updates: Partial<Annotation>): Promise<Annotation[]> {
+    if (USE_API) {
+        // For API, we'd need a PATCH endpoint - for now just reload
+        // This will be implemented when we build the backend
+        console.warn('updateAnnotation via API not yet implemented');
+        return loadFromAPI();
+    }
+
+    const annotations = loadFromLocalStorage().map(a => {
         if (a.id === id) {
-            return {
-                ...a,
-                ...updates,
-                text: updates.text ? validateText(updates.text) : a.text,
-            };
+            return { ...a, ...updates, text: updates.text ? validateText(updates.text) : a.text };
         }
         return a;
     });
-    saveAnnotations(annotations);
+    saveToLocalStorage(annotations);
     return annotations;
+}
+
+/**
+ * Returns the current storage mode for UI display.
+ */
+export function getStorageMode(): { badge: string; label: string } {
+    return USE_API
+        ? { badge: 'V2', label: '☁️ API' }
+        : { badge: 'V1', label: '💾 localStorage' };
 }

@@ -9,36 +9,36 @@
   --bg-secondary: #1a1a2e;
   --bg-tertiary: #16213e;
   --bg-glass: rgba(26, 26, 46, 0.85);
-  
+
   --accent-primary: #00ff88;
   --accent-secondary: #00d4ff;
   --accent-tertiary: #ff4488;
   --accent-warning: #ffaa00;
-  
+
   --text-primary: #ffffff;
   --text-secondary: #a0a0b0;
   --text-muted: #6a6a7a;
-  
+
   --border-color: rgba(255, 255, 255, 0.1);
   --border-glow: rgba(0, 255, 136, 0.3);
-  
+
   /* Spacing */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
-  
+
   /* Border Radius */
   --radius-sm: 6px;
   --radius-md: 12px;
   --radius-lg: 20px;
-  
+
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
   --transition-slow: 400ms ease;
-  
+
   /* Shadows */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
@@ -131,6 +131,37 @@ body {
   overflow: hidden;
 }
 
+/* Error Banner */
+.error-banner {
+  background: linear-gradient(135deg, var(--accent-tertiary), #ff6666);
+  color: white;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Loading State */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+.loading-state .loading-spinner {
+  width: 40px;
+  height: 40px;
+  margin-bottom: var(--spacing-md);
+}
+
+.loading-state p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
 /* ===================================
    Potree Viewer
    =================================== */
@@ -189,7 +220,9 @@ body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-overlay p,
@@ -354,8 +387,13 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .annotation-form {
@@ -375,6 +413,7 @@ body {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

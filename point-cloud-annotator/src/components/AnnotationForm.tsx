@@ -5,11 +5,12 @@ interface AnnotationFormProps {
     position: { x: number; y: number; z: number } | null;
     onSave: (text: string) => void;
     onCancel: () => void;
+    isSaving?: boolean;
 }
 
 const MAX_BYTES = STORAGE.MAX_TEXT_BYTES;
 
-export function AnnotationForm({ position, onSave, onCancel }: AnnotationFormProps) {
+export function AnnotationForm({ position, onSave, onCancel, isSaving = false }: AnnotationFormProps) {
     const [text, setText] = useState('');
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -102,9 +103,9 @@ export function AnnotationForm({ position, onSave, onCancel }: AnnotationFormPro
                         <button
                             type="submit"
                             className="btn-primary"
-                            disabled={!text.trim() || isOverLimit}
+                            disabled={!text.trim() || isOverLimit || isSaving}
                         >
-                            Save Annotation
+                            {isSaving ? 'Saving...' : 'Save Annotation'}
                         </button>
                     </div>
 

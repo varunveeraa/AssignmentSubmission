@@ -114,15 +114,15 @@ For V1 (Tier 1 persistence), localStorage provides:
 
 ## 🗺️ Roadmap
 
-### V2 - Local Backend (Planned)
-- [ ] Node.js/Express REST API
-- [ ] File-based JSON database (lowdb)
-- [ ] Multi-session support
-- [ ] Cloud deployment (Vercel/Railway)
+### V2 - Netlify Deployment (Planned)
+- [ ] Netlify Functions (serverless API)
+- [ ] Netlify Blobs (NoSQL key-value storage)
+- [ ] Same REST API as V3
+- [ ] Easy transition to AWS
 
 ### V3 - AWS Serverless (Planned)
 - [ ] AWS API Gateway + Lambda
-- [ ] DynamoDB persistence
+- [ ] DynamoDB (NoSQL key-value)
 - [ ] S3 static hosting
 - [ ] CloudFront CDN
 - [ ] Infrastructure as Code (Terraform)

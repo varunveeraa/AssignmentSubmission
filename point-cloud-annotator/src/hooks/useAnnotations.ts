@@ -1,14 +1,43 @@
-import { useState, useCallback } from 'react';
+/**
+ * useAnnotations Hook
+ * Manages annotation state with async storage operations.
+ */
+
+import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { Annotation } from '../types/annotation';
 import * as storage from '../services/storage';
 
 export function useAnnotations() {
-    // Initialize with data from localStorage directly
-    const [annotations, setAnnotations] = useState<Annotation[]>(() => storage.loadAnnotations());
+    const [annotations, setAnnotations] = useState<Annotation[]>([]);
     const [selectedAnnotation, setSelectedAnnotation] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const createAnnotation = useCallback((position: { x: number; y: number; z: number }, text: string) => {
+    // Load annotations on mount
+    useEffect(() => {
+        let mounted = true;
+
+        async function load() {
+            try {
+                setIsLoading(true);
+                const data = await storage.loadAnnotations();
+                if (mounted) setAnnotations(data);
+            } catch (err) {
+                if (mounted) setError(err instanceof Error ? err.message : 'Failed to load');
+            } finally {
+                if (mounted) setIsLoading(false);
+            }
+        }
+
+        load();
+        return () => { mounted = false; };
+    }, []);
+
+    const createAnnotation = useCallback(async (
+        position: { x: number; y: number; z: number },
+        text: string
+    ) => {
         const newAnnotation: Annotation = {
             id: uuidv4(),
             position,
@@ -16,22 +45,35 @@ export function useAnnotations() {
             createdAt: Date.now(),
         };
 
-        const updated = storage.addAnnotation(newAnnotation);
-        setAnnotations(updated);
-        return newAnnotation;
+        try {
+            const updated = await storage.addAnnotation(newAnnotation);
+            setAnnotations(updated);
+            return newAnnotation;
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to create');
+            throw err;
+        }
     }, []);
 
-    const deleteAnnotation = useCallback((id: string) => {
-        const updated = storage.deleteAnnotation(id);
-        setAnnotations(updated);
-        if (selectedAnnotation === id) {
-            setSelectedAnnotation(null);
+    const deleteAnnotation = useCallback(async (id: string) => {
+        try {
+            const updated = await storage.deleteAnnotation(id);
+            setAnnotations(updated);
+            if (selectedAnnotation === id) setSelectedAnnotation(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to delete');
+            throw err;
         }
     }, [selectedAnnotation]);
 
-    const updateAnnotation = useCallback((id: string, updates: Partial<Annotation>) => {
-        const updated = storage.updateAnnotation(id, updates);
-        setAnnotations(updated);
+    const updateAnnotation = useCallback(async (id: string, updates: Partial<Annotation>) => {
+        try {
+            const updated = await storage.updateAnnotation(id, updates);
+            setAnnotations(updated);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to update');
+            throw err;
+        }
     }, []);
 
     const selectAnnotation = useCallback((id: string | null) => {
@@ -41,6 +83,8 @@ export function useAnnotations() {
     return {
         annotations,
         selectedAnnotation,
+        isLoading,
+        error,
         createAnnotation,
         deleteAnnotation,
         updateAnnotation,

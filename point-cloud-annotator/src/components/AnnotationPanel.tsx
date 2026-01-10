@@ -5,6 +5,7 @@ interface AnnotationPanelProps {
     selectedAnnotation: string | null;
     onSelect: (id: string) => void;
     onDelete: (id: string) => void;
+    isLoading?: boolean;
 }
 
 export function AnnotationPanel({
@@ -12,6 +13,7 @@ export function AnnotationPanel({
     selectedAnnotation,
     onSelect,
     onDelete,
+    isLoading = false,
 }: AnnotationPanelProps) {
     const formatDate = (timestamp: number) => {
         return new Date(timestamp).toLocaleString();
@@ -30,7 +32,12 @@ export function AnnotationPanel({
             </div>
 
             <div className="annotation-list">
-                {annotations.length === 0 ? (
+                {isLoading ? (
+                    <div className="loading-state">
+                        <div className="loading-spinner"></div>
+                        <p>Loading annotations...</p>
+                    </div>
+                ) : annotations.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">🎯</div>
                         <p>No annotations yet</p>
