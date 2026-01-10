@@ -1,35 +1,79 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState, useCallback } from 'react';
+import { PotreeViewer } from './components/PotreeViewer';
+import { AnnotationPanel } from './components/AnnotationPanel';
+import { AnnotationForm } from './components/AnnotationForm';
+import { useAnnotations } from './hooks/useAnnotations';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const {
+    annotations,
+    selectedAnnotation,
+    createAnnotation,
+    deleteAnnotation,
+    selectAnnotation,
+  } = useAnnotations();
+
+  const [pendingPosition, setPendingPosition] = useState<{ x: number; y: number; z: number } | null>(null);
+
+  const handlePointClick = useCallback((position: { x: number; y: number; z: number }) => {
+    setPendingPosition(position);
+  }, []);
+
+  const handleAnnotationClick = useCallback((id: string) => {
+    selectAnnotation(selectedAnnotation === id ? null : id);
+  }, [selectAnnotation, selectedAnnotation]);
+
+  const handleSaveAnnotation = useCallback((text: string) => {
+    if (pendingPosition) {
+      createAnnotation(pendingPosition, text);
+      setPendingPosition(null);
+    }
+  }, [pendingPosition, createAnnotation]);
+
+  const handleCancelAnnotation = useCallback(() => {
+    setPendingPosition(null);
+  }, []);
+
+  const handleDeleteAnnotation = useCallback((id: string) => {
+    deleteAnnotation(id);
+  }, [deleteAnnotation]);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="app">
+      <header className="app-header">
+        <div className="header-content">
+          <h1>🦁 Point Cloud Annotator</h1>
+          <span className="header-subtitle">3D Annotation Tool</span>
+        </div>
+        <div className="header-badge">
+          <span className="badge">V1</span>
+          <span className="storage-indicator">💾 localStorage</span>
+        </div>
+      </header>
+
+      <main className="app-main">
+        <PotreeViewer
+          annotations={annotations}
+          selectedAnnotation={selectedAnnotation}
+          onPointClick={handlePointClick}
+          onAnnotationClick={handleAnnotationClick}
+        />
+        <AnnotationPanel
+          annotations={annotations}
+          selectedAnnotation={selectedAnnotation}
+          onSelect={handleAnnotationClick}
+          onDelete={handleDeleteAnnotation}
+        />
+      </main>
+
+      <AnnotationForm
+        position={pendingPosition}
+        onSave={handleSaveAnnotation}
+        onCancel={handleCancelAnnotation}
+      />
+    </div>
+  );
 }
 
-export default App
+export default App;

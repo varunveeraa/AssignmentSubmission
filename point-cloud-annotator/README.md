@@ -1,73 +1,144 @@
-# React + TypeScript + Vite
+# 🦁 Point Cloud Annotator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A web-based 3D point cloud annotation tool built with React, TypeScript, and Three.js.
 
-Currently, two official plugins are available:
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Features
 
-## React Compiler
+- **3D Point Cloud Visualization**: Interactive 3D viewer with orbit controls
+- **Annotation System**: Click on any point to create annotations
+- **Text Annotations**: Attach text notes (max 256 bytes) to any point
+- **Persistent Storage**: Annotations persist across page refreshes via localStorage
+- **Modern UI**: Sleek dark theme with glassmorphism effects
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 📸 Screenshot
 
-## Expanding the ESLint configuration
+![Point Cloud Annotator](docs/screenshot.png)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🛠️ Tech Stack
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+| Category | Technology |
+|----------|------------|
+| Frontend | React 19 + TypeScript |
+| Build Tool | Vite 7 |
+| 3D Rendering | Three.js |
+| Styling | Modern CSS (Custom Properties, Glassmorphism) |
+| Persistence | Browser localStorage (V1) |
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 🚀 Quick Start
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Prerequisites
+
+- Node.js 20.x or higher
+- npm 10.x or higher
+
+### Installation
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd point-cloud-annotator
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The application will be available at `http://localhost:5173`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 📖 Usage
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. **View Point Cloud**: Use mouse to navigate the 3D scene
+   - **Left-click + drag**: Rotate view
+   - **Right-click + drag**: Pan view
+   - **Scroll**: Zoom in/out
+
+2. **Create Annotation**: Click on any point in the point cloud
+   - A form will appear to enter annotation text
+   - Maximum 256 bytes for annotation text
+   - Press `Ctrl + Enter` to save quickly
+
+3. **View Annotations**: All annotations appear in the right panel
+   - Click on an annotation to highlight it in 3D view
+
+4. **Delete Annotation**: 
+   - Click the 🗑️ button next to any annotation
+   - Or click on the annotation marker in 3D view
+
+## 📁 Project Structure
+
 ```
+point-cloud-annotator/
+├── src/
+│   ├── components/
+│   │   ├── PotreeViewer.tsx    # 3D viewer with Three.js
+│   │   ├── AnnotationPanel.tsx # Sidebar annotation list
+│   │   └── AnnotationForm.tsx  # Create annotation modal
+│   ├── hooks/
+│   │   └── useAnnotations.ts   # Annotation state management
+│   ├── services/
+│   │   └── storage.ts          # localStorage persistence
+│   ├── types/
+│   │   └── annotation.ts       # TypeScript interfaces
+│   ├── App.tsx                 # Main application component
+│   ├── App.css                 # Styles
+│   └── main.tsx                # Entry point
+├── index.html
+├── package.json
+├── vite.config.ts
+└── README.md
+```
+
+## 🔧 Technical Choices
+
+### Why Three.js instead of Potree directly?
+
+For V1, I chose to create a sample point cloud with Three.js to:
+1. **Simplify setup**: No need for external point cloud conversion tools
+2. **Faster development**: Focus on core annotation functionality
+3. **Easier testing**: Self-contained sample data
+
+In V2/V3, this can be extended to load real LAZ files using Potree or potree-loader.
+
+### Why localStorage?
+
+For V1 (Tier 1 persistence), localStorage provides:
+- Zero configuration required
+- Works offline
+- Simple API for JSON data
+- Sufficient for single-user annotation workflow
+
+## 🗺️ Roadmap
+
+### V2 - Local Backend (Planned)
+- [ ] Node.js/Express REST API
+- [ ] File-based JSON database (lowdb)
+- [ ] Multi-session support
+- [ ] Cloud deployment (Vercel/Railway)
+
+### V3 - AWS Serverless (Planned)
+- [ ] AWS API Gateway + Lambda
+- [ ] DynamoDB persistence
+- [ ] S3 static hosting
+- [ ] CloudFront CDN
+- [ ] Infrastructure as Code (Terraform)
+
+## 📝 Acceptance Criteria
+
+- [x] Point cloud visible in viewer on page load
+- [x] Click on any point to add annotation
+- [x] Input and save text (max 256 bytes) for annotations
+- [x] Delete existing annotations
+- [x] Annotations reload on page refresh
+
+## 📄 License
+
+MIT License - feel free to use this project as you wish!
+
+---
+
+Built with ❤️ for Unleash Live Skills Assessment
