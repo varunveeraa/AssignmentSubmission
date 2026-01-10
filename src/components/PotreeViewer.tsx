@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { Annotation } from '../types/annotation';
 import { POINT_CLOUD, ANNOTATION_MARKER, CAMERA, SCENE, LIGHTS } from '../constants';
+import { generateLionPointCloud } from '../utils/pointCloudGenerator';
 
 interface PotreeViewerProps {
     annotations: Annotation[];
@@ -14,51 +15,8 @@ interface PotreeViewerProps {
 // Create a sample point cloud (lion-like shape)
 function createSamplePointCloud(scene: THREE.Scene, pointCloudRef: React.MutableRefObject<THREE.Points | null>) {
     const numPoints = POINT_CLOUD.NUM_POINTS;
-    const positions = new Float32Array(numPoints * 3);
-    const colors = new Float32Array(numPoints * 3);
 
-    // Create a lion-like shape using parametric equations
-    for (let i = 0; i < numPoints; i++) {
-        const t = Math.random() * Math.PI * 2;
-        const u = Math.random() * Math.PI;
-        const r = 2 + Math.random() * 0.5;
-
-        // Body (elongated sphere)
-        if (i < numPoints * 0.4) {
-            positions[i * 3] = r * Math.sin(u) * Math.cos(t) * 1.5;
-            positions[i * 3 + 1] = r * Math.sin(u) * Math.sin(t) * 0.8;
-            positions[i * 3 + 2] = r * Math.cos(u);
-        }
-        // Head
-        else if (i < numPoints * 0.6) {
-            const headR = 1 + Math.random() * 0.3;
-            positions[i * 3] = headR * Math.sin(u) * Math.cos(t) + 3;
-            positions[i * 3 + 1] = headR * Math.sin(u) * Math.sin(t) + 0.5;
-            positions[i * 3 + 2] = headR * Math.cos(u);
-        }
-        // Mane (fluffy around head)
-        else if (i < numPoints * 0.8) {
-            const maneR = 1.5 + Math.random() * 0.5;
-            const angle = Math.random() * Math.PI * 2;
-            positions[i * 3] = maneR * Math.cos(angle) + 3;
-            positions[i * 3 + 1] = maneR * Math.sin(angle) + 0.5;
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 2;
-        }
-        // Legs
-        else {
-            const legIndex = Math.floor((i - numPoints * 0.8) / (numPoints * 0.05));
-            const legX = legIndex < 2 ? -1 : 1;
-            const legZ = legIndex % 2 === 0 ? 1.5 : -1.5;
-            positions[i * 3] = legX + (Math.random() - 0.5) * 0.3;
-            positions[i * 3 + 1] = -1.5 + Math.random() * 1.5;
-            positions[i * 3 + 2] = legZ + (Math.random() - 0.5) * 0.3;
-        }
-
-        // Golden/orange colors for lion
-        colors[i * 3] = 0.9 + Math.random() * 0.1;
-        colors[i * 3 + 1] = 0.6 + Math.random() * 0.2;
-        colors[i * 3 + 2] = 0.2 + Math.random() * 0.1;
-    }
+    const { positions, colors } = generateLionPointCloud(numPoints);
 
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -71,6 +29,18 @@ function createSamplePointCloud(scene: THREE.Scene, pointCloudRef: React.Mutable
     });
 
     const points = new THREE.Points(geometry, material);
+
+    // Rotate to face camera better if needed, or adjust camera
+    // My generator aligns body along Z, so lion faces Z (or -Z).
+    // Let's rotate it so it stands on XZ plane and faces X or something standard.
+    // The generator produces:
+    // Body along Z (horizontal?)
+    // Legs -Y relative to body?
+    // Let's check generator axis: 
+    // Cylinder rot PI/2 on X -> Aligned with Z? No. Cyl default is Y. Rot on X makes it Z. Correct.
+    // Legs pos y = -0.6. So "up" is Y.
+    // So it stands UP on Y axis.
+
     scene.add(points);
     pointCloudRef.current = points;
 }

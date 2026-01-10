@@ -25,17 +25,18 @@
 The **Point Cloud Annotator** is built with **React 19**, **TypeScript**, and **Three.js**. The frontend design remains consistent across all versions, featuring a dark-themed glassmorphism UI. A storage abstraction layer (`src/services/storage.ts`) allows seamless switching between backends via environment variables.
 
 ### Potree / Three.js Implementation
-The 3D visualization is powered by **Three.js** with a custom point cloud renderer inspired by Potree:
+The 3D visualization uses **potree-core** (the official Potree library) integrated with **Three.js**:
 
 | Feature | Implementation |
 |---------|----------------|
-| **Point Cloud Rendering** | `THREE.Points` with `BufferGeometry` for 50,000+ points with vertex colors |
+| **Point Cloud Data** | Official **Potree Lion (lion_takanawa)** dataset from [potree.github.io](https://potree.github.io/potree/examples/lion.html) |
+| **Rendering** | `potree-core` with LOD (Level of Detail) for efficient rendering of 1M+ points |
 | **Camera Controls** | `OrbitControls` with damping for smooth rotation, zoom (scroll), and pan (right-click) |
 | **Annotation Markers** | `THREE.SphereGeometry` meshes with emissive `MeshPhongMaterial` for glow effect |
-| **Click Detection** | `THREE.Raycaster` for precise point-picking on the cloud and marker selection |
+| **Click Detection** | `Potree.pick()` for precise point-picking on the cloud; `THREE.Raycaster` for marker selection |
 | **Scene Composition** | GridHelper, ambient + directional lighting, responsive canvas resize handling |
 
-The point cloud is procedurally generated to resemble a **lion shape** (body, head, mane, legs) using parametric equations, with golden/orange vertex colors.
+The lion point cloud is the famous **Tokyo Takanawa lion statue**, a high-quality 3D scan used in official Potree demonstrations.
 
 ### Backend Evolution
 
