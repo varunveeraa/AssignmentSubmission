@@ -70,7 +70,11 @@ function saveToLocalStorage(annotations: Annotation[]): void {
 async function loadFromAPI(): Promise<Annotation[]> {
     try {
         const response = await fetch(API_URL);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+            const error = await response.text();
+            console.error('API Error (Load):', error);
+            throw new Error(`HTTP ${response.status}: ${error}`);
+        }
         const data = await response.json();
         return data.annotations || data || [];
     } catch (error) {
@@ -85,13 +89,21 @@ async function addToAPI(annotation: Annotation): Promise<void> {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(annotation),
     });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) {
+        const error = await response.text();
+        console.error('API Error (Add):', error);
+        throw new Error(`HTTP ${response.status}: ${error}`);
+    }
 }
 
 async function deleteFromAPI(id: string): Promise<void> {
     // Netlify Functions use query params, not path params
     const response = await fetch(`${API_URL}?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) {
+        const error = await response.text();
+        console.error('API Error (Delete):', error);
+        throw new Error(`HTTP ${response.status}: ${error}`);
+    }
 }
 
 // ============================================
