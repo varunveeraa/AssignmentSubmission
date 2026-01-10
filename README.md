@@ -29,14 +29,14 @@ The 3D visualization uses **potree-core** (the official Potree library) integrat
 
 | Feature | Implementation |
 |---------|----------------|
-| **Point Cloud Data** | Official **Potree Lion (lion_takanawa)** dataset from [potree.github.io](https://potree.github.io/potree/examples/lion.html) |
+| **Point Cloud Data** | **Custom Generative Lion**: Algorithmic point cloud generation using `THREE.Vector3` math (`src/utils/pointCloudGenerator.ts`) |
 | **Rendering** | `potree-core` with LOD (Level of Detail) for efficient rendering of 1M+ points |
 | **Camera Controls** | `OrbitControls` with damping for smooth rotation, zoom (scroll), and pan (right-click) |
 | **Annotation Markers** | `THREE.SphereGeometry` meshes with emissive `MeshPhongMaterial` for glow effect |
 | **Click Detection** | `Potree.pick()` for precise point-picking on the cloud; `THREE.Raycaster` for marker selection |
 | **Scene Composition** | GridHelper, ambient + directional lighting, responsive canvas resize handling |
 
-The lion point cloud is the famous **Tokyo Takanawa lion statue**, a high-quality 3D scan used in official Potree demonstrations.
+The point cloud is a **procedurally generated lion** created via custom TypeScript logic, demonstrating algorithmic 3D shape construction instead of loading a static external asset.
 
 ### Backend Evolution
 
@@ -134,7 +134,7 @@ This project was developed with the assistance of **Antigravity AI Coding Agent*
 ### Models Used
 | Model | Use Case |
 |-------|----------|
-| **Claude Opus 4.5** | Critical logic, core functionality, Three.js integration, Lambda handlers |
+| **Claude Opus 4.5** | Critical logic, core functionality, **custom lion point cloud generation**, Three.js integration, Lambda handlers |
 | **Gemini 3 Pro (High)** | Debugging, documentation, code review, README drafting |
 
 ### How AI Was Leveraged
