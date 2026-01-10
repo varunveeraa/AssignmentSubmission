@@ -41,6 +41,12 @@ function createSamplePointCloud(scene: THREE.Scene, pointCloudRef: React.Mutable
     // Legs pos y = -0.6. So "up" is Y.
     // So it stands UP on Y axis.
 
+    // Scale the lion to be bigger as requested
+    points.scale.set(2.5, 2.5, 2.5);
+
+    // Raise the lion so it stands on the grid
+    points.position.y = 3.0;
+
     scene.add(points);
     pointCloudRef.current = points;
 }
@@ -273,7 +279,7 @@ export function PotreeViewer({
                 tabIndex={0}
             />
             <div className="viewer-instructions" aria-live="polite">
-                <p>🖱️ Click on the point cloud to add annotations</p>
+                <p>🖱️ Touch anywhere on the lion, towards or close around the lion to create an annotation</p>
                 <p>🔄 Drag to rotate • Scroll to zoom • Right-click to pan</p>
             </div>
         </div>

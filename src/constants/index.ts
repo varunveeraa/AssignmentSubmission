@@ -5,12 +5,12 @@
 // Point Cloud Configuration
 export const POINT_CLOUD = {
     NUM_POINTS: 100000,
-    POINT_SIZE: 0.05,
+    POINT_SIZE: 0.12,
 } as const;
 
 // Annotation Marker Configuration
 export const ANNOTATION_MARKER = {
-    SIZE: 0.15,
+    SIZE: 0.35,
     SEGMENTS: 16,
     COLOR_DEFAULT: 0x00ff88,
     COLOR_SELECTED: 0xff4488,
@@ -25,7 +25,7 @@ export const CAMERA = {
     FOV: 60,
     NEAR: 0.1,
     FAR: 1000,
-    POSITION: { x: 5, y: 5, z: 5 },
+    POSITION: { x: 12, y: 8, z: 12 },
     MIN_DISTANCE: 1,
     MAX_DISTANCE: 100,
     DAMPING_FACTOR: 0.05,
