@@ -165,6 +165,6 @@ export async function updateAnnotation(id: string, updates: Partial<Annotation>)
  */
 export function getStorageMode(): { badge: string; label: string } {
     return USE_API
-        ? { badge: 'V2', label: '☁️ API' }
+        ? { badge: 'V3', label: '☁️ AWS DynamoDB' }
         : { badge: 'V1', label: '💾 localStorage' };
 }
