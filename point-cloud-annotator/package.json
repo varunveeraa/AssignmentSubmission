@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@netlify/blobs": "^10.5.0",
+    "@netlify/functions": "^5.1.2",
     "@types/three": "^0.182.0",
     "@types/uuid": "^10.0.0",
     "potree-core": "^2.0.12",

@@ -50,6 +50,31 @@ npm run dev
 
 The application will be available at `http://localhost:5173`
 
+### V2: Deploy to Netlify
+
+```bash
+# Install Netlify CLI
+npm install -g netlify-cli
+
+# Login to Netlify
+netlify login
+
+# Initialize Netlify project
+netlify init
+
+# Test locally with Netlify Functions
+netlify dev
+
+# Deploy to production
+netlify deploy --prod
+```
+
+**Environment Variables for V2:**
+```env
+VITE_STORAGE_PROVIDER=api
+VITE_API_URL=/.netlify/functions/annotations
+```
+
 ## 📖 Usage
 
 1. **View Point Cloud**: Use mouse to navigate the 3D scene

@@ -89,7 +89,8 @@ async function addToAPI(annotation: Annotation): Promise<void> {
 }
 
 async function deleteFromAPI(id: string): Promise<void> {
-    const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+    // Netlify Functions use query params, not path params
+    const response = await fetch(`${API_URL}?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 }
 
