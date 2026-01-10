@@ -57,6 +57,11 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
                 return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid data" }) };
             }
 
+            // Text byte limit validation (matches frontend 256 byte limit)
+            if (annotation.text && new TextEncoder().encode(annotation.text).length > 256) {
+                return { statusCode: 400, headers, body: JSON.stringify({ error: "Text exceeds 256 bytes" }) };
+            }
+
             const command = new PutCommand({
                 TableName: TABLE_NAME,
                 Item: annotation,

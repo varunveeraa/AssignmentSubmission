@@ -1,6 +1,6 @@
-# V1 Code Quality Checklist
+# Code Quality Standards - Point Cloud Annotator (V3)
 
-A comprehensive review of the Point Cloud Annotator V1 codebase for quality, consistency, and best practices.
+A comprehensive review of the Point Cloud Annotator codebase for quality, consistency, and best practices.
 
 ---
 
@@ -8,13 +8,14 @@ A comprehensive review of the Point Cloud Annotator V1 codebase for quality, con
 
 | Category | Status | Notes |
 |----------|--------|-------|
-| TypeScript | ✅ Pass | No `any`, strict types |
+| TypeScript | ✅ Pass | No `any`, strict types, proper interfaces |
 | ESLint | ✅ Pass | 0 errors |
-| React Patterns | ✅ Pass | Hooks, memoization |
-| Accessibility | ✅ Pass | ARIA labels added |
-| Performance | ✅ Good | Lazy init, cleanup |
-| Security | ✅ Pass | Input validation |
-| Documentation | ✅ Pass | JSDoc comments |
+| React Patterns | ✅ Pass | Hooks, useCallback, proper cleanup |
+| Accessibility | ✅ Pass | ARIA labels, semantic HTML |
+| Performance | ✅ Good | Lazy init, Three.js cleanup, ref usage |
+| Security | ✅ Pass | Input validation (frontend + backend) |
+| Documentation | ✅ Pass | README, JSDoc comments |
+| Infrastructure | ✅ Pass | Terraform IaC, least-privilege IAM |
 
 ---
 
@@ -25,37 +26,56 @@ A comprehensive review of the Point Cloud Annotator V1 codebase for quality, con
 - [x] Interfaces defined for all component props
 - [x] No `any` types used
 - [x] Strict null checks handled (`| null`)
-- [x] Generic types where appropriate
-- [x] Readonly/const assertions for constants
+- [x] `as const` assertions for constants
+- [x] Shared types in `src/types/`
 
 ---
 
 ## ✅ React Best Practices
 
-- [x] Functional components only (no class components)
-- [x] `useCallback` used for event handlers passed as props
-- [x] `useMemo` used for computed values (byteCount)
-- [x] Lazy state initialization (`useState(() => ...)`)
+- [x] Functional components only
+- [x] `useCallback` used for event handlers
+- [x] `useMemo` used for computed values
 - [x] Proper dependency arrays in hooks
-- [x] No prop drilling beyond 2 levels
-- [x] Cleanup functions in useEffect
+- [x] Cleanup functions in `useEffect`
 - [x] Keys provided for list items
-- [ ] React.memo for expensive components (not needed yet)
-- [ ] Suspense/lazy loading (not needed for app size)
+- [x] Custom hooks for business logic (`useAnnotations`)
 
 ---
 
 ## ✅ Code Organization
 
-- [x] Components in `src/components/`
-- [x] Hooks in `src/hooks/`
-- [x] Services in `src/services/`
-- [x] Types in `src/types/`
-- [x] Constants in `src/constants/`
-- [x] Single responsibility per file
-- [x] Consistent naming conventions
+```
+src/
+├── components/          # React components
+│   ├── AnnotationForm.tsx
+│   ├── AnnotationPanel.tsx
+│   └── PotreeViewer.tsx
+├── hooks/               # Custom React hooks
+│   └── useAnnotations.ts
+├── services/            # Storage abstraction layer
+│   └── storage.ts
+├── types/               # TypeScript interfaces
+│   └── annotation.ts
+├── constants/           # Configuration constants
+│   └── index.ts
+├── App.tsx              # Root component
+├── App.css              # Styles
+└── main.tsx             # Entry point
+
+aws/
+├── handlers/            # Lambda functions (TypeScript)
+│   └── annotations.ts
+└── dist/                # Compiled bundle (gitignored)
+
+terraform/               # Infrastructure as Code
+├── main.tf
+├── variables.tf
+└── outputs.tf
+```
 
 ### Naming Conventions
+
 | Item | Convention | Example |
 |------|------------|---------|
 | Components | PascalCase | `AnnotationPanel` |
@@ -69,114 +89,62 @@ A comprehensive review of the Point Cloud Annotator V1 codebase for quality, con
 
 ---
 
-## ✅ Performance
+## ✅ Backend (AWS Lambda)
 
-- [x] Three.js objects properly disposed in cleanup
-- [x] Event listeners removed on unmount
-- [x] Refs used for mutable values that don't need re-render
-- [x] Point cloud generated once (not on every render)
-- [x] Annotation markers reused (not recreated)
-- [x] No unnecessary re-renders
-- [ ] Bundle size analysis (TODO: add `vite-plugin-compression`)
-- [ ] Lighthouse audit (TODO for deployment)
-
----
-
-## ✅ Accessibility (a11y)
-
-### Current Status
-- [x] Semantic HTML (`<header>`, `<main>`, `<form>`)
-- [x] Form labels associated with inputs
-- [x] Button has visible text
-- [x] ARIA labels for 3D viewer
-- [x] ARIA modal attributes for dialog
-- [ ] Keyboard navigation for annotations
-- [ ] Screen reader announcements
-- [x] Focus management in modal
-- [ ] Color contrast (dark theme may need review)
-
-### Recommended Fixes
-```tsx
-// Add to PotreeViewer
-<div 
-  role="application"
-  aria-label="3D Point Cloud Viewer"
-  tabIndex={0}
-/>
-
-// Add to AnnotationForm modal
-<div 
-  role="dialog"
-  aria-modal="true"
-  aria-labelledby="annotation-form-title"
-/>
-```
+- [x] TypeScript with proper types
+- [x] Input validation (id, position, text byte limit)
+- [x] CORS headers for cross-origin requests
+- [x] Proper HTTP status codes (200, 201, 400, 405, 500)
+- [x] Error handling with try/catch
+- [x] Environment variables for configuration
+- [x] Bundled with esbuild (zero dependencies in artifact)
 
 ---
 
-## ✅ Error Handling
+## ✅ Infrastructure (Terraform)
 
-- [x] try/catch in localStorage operations
-- [x] Console error logging for debugging
-- [x] Graceful fallbacks (empty array on parse error)
-- [x] Null checks before accessing refs
-- [ ] Error boundary component (recommended for production)
-- [ ] User-facing error messages (currently console only)
+- [x] Provider and region configurable via variables
+- [x] S3 bucket with static website hosting
+- [x] DynamoDB with on-demand billing (cost-effective)
+- [x] Lambda with least-privilege IAM policy
+- [x] API Gateway with CORS configuration
+- [x] Proper resource dependencies
+- [x] Outputs for API URL and website URL
 
 ---
 
 ## ✅ Security
 
 - [x] Input sanitization (text truncated to 256 bytes)
+- [x] Server-side validation matches frontend
 - [x] No `dangerouslySetInnerHTML`
 - [x] No eval or dynamic code execution
-- [x] LocalStorage data validated on load
-- [x] No sensitive data stored
-- [x] No external API calls (V1)
+- [x] `.env` files gitignored
+- [x] Terraform state files gitignored
+- [x] IAM follows least-privilege principle
 
 ---
 
-## ⚠️ Documentation
+## ✅ Error Handling
 
-### Current Status
-- [x] README with usage instructions
-- [x] Code comments for complex logic
-- [ ] JSDoc for exported functions
-- [ ] Component prop documentation
-- [ ] API documentation (for V2)
-
-### Recommended JSDoc
-```typescript
-/**
- * Validates and truncates text to fit within byte limit
- * @param text - The input text to validate
- * @returns Truncated text that fits within MAX_TEXT_BYTES
- */
-export function validateText(text: string): string { ... }
-```
+- [x] try/catch in storage operations
+- [x] try/catch in Lambda handler
+- [x] Typed error messages
+- [x] Graceful fallbacks (empty array on parse error)
+- [x] Null checks before accessing refs
+- [x] Loading and error states in UI
 
 ---
 
-## � File Structure
+## ✅ Performance
 
-```
-src/
-├── components/          # React components
-│   ├── AnnotationForm.tsx
-│   ├── AnnotationPanel.tsx
-│   └── PotreeViewer.tsx
-├── hooks/               # Custom React hooks
-│   └── useAnnotations.ts
-├── services/            # Business logic
-│   └── storage.ts
-├── types/               # TypeScript interfaces
-│   └── annotation.ts
-├── constants/           # Configuration constants
-│   └── index.ts
-├── App.tsx              # Root component
-├── App.css              # Styles
-└── main.tsx             # Entry point
-```
+- [x] Three.js objects disposed in cleanup
+- [x] Event listeners removed on unmount
+- [x] Refs used for mutable values
+- [x] Point cloud generated once (not on every render)
+- [x] Annotation markers reused (not recreated)
+- [x] Lambda bundled with esbuild (fast cold starts)
+- [x] DynamoDB on-demand (auto-scaling)
 
 ---
 
@@ -186,27 +154,11 @@ src/
 |--------|-------|--------|
 | TypeScript Errors | 0 | ✅ |
 | ESLint Errors | 0 | ✅ |
-| Components | 4 | ✅ |
+| Frontend Components | 4 | ✅ |
 | Custom Hooks | 1 | ✅ |
 | Services | 1 | ✅ |
-| Constants Files | 1 | ✅ |
-| Total Lines | ~750 | ✅ |
-| Avg Lines/File | ~75 | ✅ |
-
----
-
-## 🧪 Testing (Future)
-
-| Type | Current | Target |
-|------|---------|--------|
-| Unit Tests | 0% | 80% |
-| Integration Tests | 0% | 60% |
-| E2E Tests | 0% | 40% |
-
-### Recommended Testing Stack
-- **Unit**: Vitest + React Testing Library
-- **E2E**: Playwright or Cypress
-- **Visual**: Storybook + Chromatic
+| Lambda Functions | 1 | ✅ |
+| Terraform Resources | 12 | ✅ |
 
 ---
 
@@ -232,31 +184,47 @@ import './App.css';
 
 ---
 
-## � Pre-V2 Checklist
+## 🧪 Testing (Future Improvement)
 
-- [x] All TypeScript errors fixed
-- [x] All ESLint errors fixed  
-- [x] Constants extracted to separate file
-- [x] Helper functions extracted
-- [x] Cleanup functions in effects
-- [x] CODE_QUALITY.md created
-- [ ] Add ARIA labels (optional)
-- [ ] Add JSDoc comments (optional)
-- [ ] Git commit with all fixes
+| Type | Current | Target |
+|------|---------|--------|
+| Unit Tests | 0% | 80% |
+| Integration Tests | 0% | 60% |
+| E2E Tests | 0% | 40% |
+
+### Recommended Stack
+- **Unit**: Vitest + React Testing Library
+- **E2E**: Playwright
+- **Visual**: Storybook + Chromatic
 
 ---
 
-## 📝 Git Commit Message Standards
+## 📝 Git Commit Standards
 
 ```
 <type>(<scope>): <description>
 
 Types: feat, fix, refactor, docs, style, test, chore
-Scope: viewer, panel, form, storage, constants
+Scope: viewer, panel, form, storage, lambda, terraform
 
 Examples:
 - feat(viewer): add point cloud raycasting
-- fix(storage): handle localStorage quota error
-- refactor(constants): extract magic numbers
-- docs: add CODE_QUALITY.md
+- fix(lambda): validate text byte limit
+- refactor(terraform): add IAM least-privilege policy
+- docs: update README for V3
 ```
+
+---
+
+## ✅ Version History
+
+| Version | Commit | Description |
+|---------|--------|-------------|
+| V1 | `7b137f7` | localStorage persistence |
+| V2a | `d57a128` | Netlify Functions (in-memory) |
+| V2b | `fdb4f9b` | Netlify Blobs (payment required) |
+| V3 | `latest` | AWS (S3 + Lambda + DynamoDB) |
+
+---
+
+*Last updated: 2026-01-10*
