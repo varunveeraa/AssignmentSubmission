@@ -61,7 +61,10 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="header-content">
-          <h1>🦁 Point Cloud Annotator</h1>
+          <h1>
+            <span className="header-emoji">🦁</span>
+            <span className="header-title-text">Point Cloud Annotator</span>
+          </h1>
           <span className="header-subtitle">3D Annotation Tool</span>
         </div>
         <div className="header-badge">
