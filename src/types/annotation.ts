@@ -1,5 +1,6 @@
 export interface Annotation {
     id: string;
+    sceneId: string;
     position: {
         x: number;
         y: number;

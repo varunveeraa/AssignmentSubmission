@@ -19,12 +19,15 @@ function App() {
 
   const [pendingPosition, setPendingPosition] = useState<{ x: number; y: number; z: number } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [annotateMode, setAnnotateMode] = useState(false);
 
   const storageMode = getStorageMode();
 
   const handlePointClick = useCallback((position: { x: number; y: number; z: number }) => {
-    setPendingPosition(position);
-  }, []);
+    if (annotateMode) {
+      setPendingPosition(position);
+    }
+  }, [annotateMode]);
 
   const handleAnnotationClick = useCallback((id: string) => {
     selectAnnotation(selectedAnnotation === id ? null : id);
@@ -68,6 +71,13 @@ function App() {
           <span className="header-subtitle">3D Annotation Tool</span>
         </div>
         <div className="header-badge">
+          <button
+            className={`annotate-toggle ${annotateMode ? 'active' : ''}`}
+            onClick={() => setAnnotateMode(!annotateMode)}
+            title={annotateMode ? 'Click to explore freely' : 'Click to enable annotation mode'}
+          >
+            {annotateMode ? '✏️ Annotating' : '👁️ Exploring'}
+          </button>
           <span className="badge">{storageMode.badge}</span>
           <span className="storage-indicator">{storageMode.label}</span>
         </div>
@@ -85,6 +95,7 @@ function App() {
           selectedAnnotation={selectedAnnotation}
           onPointClick={handlePointClick}
           onAnnotationClick={handleAnnotationClick}
+          annotateMode={annotateMode}
         />
         <AnnotationPanel
           annotations={annotations}

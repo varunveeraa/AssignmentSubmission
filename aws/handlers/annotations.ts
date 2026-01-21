@@ -1,14 +1,16 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, ScanCommand, PutCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, QueryCommand, PutCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = process.env.TABLE_NAME || "Annotations";
+const DEFAULT_SCENE_ID = "lion"; // Default scene for the lion point cloud
 
 interface Annotation {
     id: string;
+    sceneId: string;
     position: { x: number; y: number; z: number };
     text: string;
     createdAt: number;
@@ -30,10 +32,17 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
             return { statusCode: 204, headers, body: "" };
         }
 
-        // GET /annotations - Scan table
+        // GET /annotations?sceneId=xxx - Query by sceneId (partition key)
+        // This uses Query instead of Scan for efficient retrieval
         if (httpMethod === "GET") {
-            const command = new ScanCommand({
+            const sceneId = event.queryStringParameters?.sceneId || DEFAULT_SCENE_ID;
+
+            const command = new QueryCommand({
                 TableName: TABLE_NAME,
+                KeyConditionExpression: "sceneId = :sceneId",
+                ExpressionAttributeValues: {
+                    ":sceneId": sceneId,
+                },
             });
 
             const response = await docClient.send(command);
@@ -44,13 +53,16 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
             };
         }
 
-        // POST /annotations - Create item
+        // POST /annotations - Create item (with sceneId)
         if (httpMethod === "POST") {
             if (!event.body) {
                 return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing body" }) };
             }
 
             const annotation = JSON.parse(event.body) as Annotation;
+
+            // Ensure sceneId is set (default to lion if not provided)
+            annotation.sceneId = annotation.sceneId || DEFAULT_SCENE_ID;
 
             // Basic validation
             if (!annotation.id || !annotation.position) {
@@ -76,16 +88,18 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
             };
         }
 
-        // DELETE /annotations?id=xxx
+        // DELETE /annotations?sceneId=xxx&id=xxx - Delete by composite key
         if (httpMethod === "DELETE") {
             const id = event.queryStringParameters?.id;
+            const sceneId = event.queryStringParameters?.sceneId || DEFAULT_SCENE_ID;
+
             if (!id) {
                 return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing ID" }) };
             }
 
             const command = new DeleteCommand({
                 TableName: TABLE_NAME,
-                Key: { id },
+                Key: { sceneId, id },
             });
 
             await docClient.send(command);
@@ -113,3 +127,4 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
         };
     }
 };
+

@@ -8,6 +8,9 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Annotation } from '../types/annotation';
 import * as storage from '../services/storage';
 
+// Default scene ID for the lion point cloud
+const DEFAULT_SCENE_ID = 'lion';
+
 export function useAnnotations() {
     const [annotations, setAnnotations] = useState<Annotation[]>([]);
     const [selectedAnnotation, setSelectedAnnotation] = useState<string | null>(null);
@@ -40,6 +43,7 @@ export function useAnnotations() {
     ) => {
         const newAnnotation: Annotation = {
             id: uuidv4(),
+            sceneId: DEFAULT_SCENE_ID,
             position,
             text: storage.validateText(text),
             createdAt: Date.now(),

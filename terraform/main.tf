@@ -49,11 +49,20 @@ resource "aws_s3_bucket_policy" "frontend_bucket_policy" {
 
 # ==============================================================================
 # DynamoDB Table
+# NOTE: Schema optimized for Query operations by scene.
+# Using sceneId as partition key enables efficient listing of annotations
+# for a given scene without requiring a Scan operation.
 # ==============================================================================
 resource "aws_dynamodb_table" "annotations_table" {
   name           = "Annotations"
   billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "id"
+  hash_key       = "sceneId"
+  range_key      = "id"
+
+  attribute {
+    name = "sceneId"
+    type = "S"
+  }
 
   attribute {
     name = "id"

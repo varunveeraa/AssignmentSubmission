@@ -10,6 +10,7 @@ interface PotreeViewerProps {
     selectedAnnotation: string | null;
     onPointClick: (position: { x: number; y: number; z: number }) => void;
     onAnnotationClick: (id: string) => void;
+    annotateMode: boolean;
 }
 
 // Create a sample point cloud (lion-like shape)
@@ -122,6 +123,7 @@ export function PotreeViewer({
     selectedAnnotation,
     onPointClick,
     onAnnotationClick,
+    annotateMode,
 }: PotreeViewerProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const sceneRef = useRef<THREE.Scene | null>(null);
@@ -272,15 +274,19 @@ export function PotreeViewer({
         <div className="potree-viewer-container">
             <div
                 ref={containerRef}
-                className="potree-viewer"
+                className={`potree-viewer ${annotateMode ? 'annotate-mode' : 'explore-mode'}`}
                 onClick={handleClick}
                 role="application"
                 aria-label="3D Point Cloud Viewer - Click to add annotations"
                 tabIndex={0}
             />
             <div className="viewer-instructions" aria-live="polite">
-                <p>🖱️ Touch anywhere on the lion, towards or close around the lion to create an annotation</p>
                 <p>🔄 Drag to rotate • Scroll to zoom • Right-click to pan</p>
+                {annotateMode ? (
+                    <p className="annotate-hint">✏️ Click on the lion to add an annotation</p>
+                ) : (
+                    <p className="explore-hint">👁️ Exploring mode — use the toggle above to annotate</p>
+                )}
             </div>
         </div>
     );

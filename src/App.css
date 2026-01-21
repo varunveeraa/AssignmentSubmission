@@ -182,7 +182,53 @@ body {
 .potree-viewer {
   width: 100%;
   height: 100%;
+}
+
+.potree-viewer.annotate-mode {
   cursor: crosshair;
+}
+
+.potree-viewer.explore-mode {
+  cursor: grab;
+}
+
+.potree-viewer.explore-mode:active {
+  cursor: grabbing;
+}
+
+/* Annotate Mode Toggle Button */
+.annotate-toggle {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  border: 2px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.annotate-toggle:hover {
+  border-color: var(--accent-secondary);
+  color: var(--text-primary);
+}
+
+.annotate-toggle.active {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: var(--bg-primary);
+  border-color: transparent;
+  box-shadow: var(--shadow-glow);
+}
+
+/* Annotation hints */
+.annotate-hint {
+  color: var(--accent-primary) !important;
+  font-weight: 500;
+}
+
+.explore-hint {
+  color: var(--text-muted);
 }
 
 .viewer-instructions {

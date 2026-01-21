@@ -12,6 +12,7 @@ import { STORAGE } from '../constants';
 
 const USE_API = import.meta.env.VITE_STORAGE_PROVIDER === 'api';
 const API_URL = import.meta.env.VITE_API_URL || '/.netlify/functions/annotations';
+const DEFAULT_SCENE_ID = 'lion'; // Default scene for the lion point cloud
 
 /**
  * Validates and truncates text to fit within byte limit.
@@ -69,7 +70,8 @@ function saveToLocalStorage(annotations: Annotation[]): void {
 
 async function loadFromAPI(): Promise<Annotation[]> {
     try {
-        const response = await fetch(API_URL);
+        // Include sceneId for efficient Query instead of Scan
+        const response = await fetch(`${API_URL}?sceneId=${encodeURIComponent(DEFAULT_SCENE_ID)}`);
         if (!response.ok) {
             const error = await response.text();
             console.error('API Error (Load):', error);
@@ -97,8 +99,8 @@ async function addToAPI(annotation: Annotation): Promise<void> {
 }
 
 async function deleteFromAPI(id: string): Promise<void> {
-    // Netlify Functions use query params, not path params
-    const response = await fetch(`${API_URL}?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    // Include sceneId for composite key delete
+    const response = await fetch(`${API_URL}?sceneId=${encodeURIComponent(DEFAULT_SCENE_ID)}&id=${encodeURIComponent(id)}`, { method: 'DELETE' });
     if (!response.ok) {
         const error = await response.text();
         console.error('API Error (Delete):', error);
@@ -165,6 +167,6 @@ export async function updateAnnotation(id: string, updates: Partial<Annotation>)
  */
 export function getStorageMode(): { badge: string; label: string } {
     return USE_API
-        ? { badge: 'V3', label: '☁️ AWS DynamoDB' }
+        ? { badge: 'V3', label: '☁️ Cloud Sync' }
         : { badge: 'V1', label: '💾 localStorage' };
 }
