@@ -43,10 +43,10 @@ function createSamplePointCloud(scene: THREE.Scene, pointCloudRef: React.Mutable
     // So it stands UP on Y axis.
 
     // Scale the lion to be bigger as requested
-    points.scale.set(2.5, 2.5, 2.5);
+    points.scale.set(SCENE.LION_SCALE, SCENE.LION_SCALE, SCENE.LION_SCALE);
 
     // Raise the lion so it stands on the grid
-    points.position.y = 3.0;
+    points.position.y = SCENE.LION_Y_OFFSET;
 
     scene.add(points);
     pointCloudRef.current = points;
@@ -218,9 +218,26 @@ export function PotreeViewer({
 
         return () => {
             window.removeEventListener('resize', handleResize);
+
+            // Clean up Three.js resources to prevent memory leaks
+            scene.traverse((object) => {
+                if (object instanceof THREE.Mesh || object instanceof THREE.Points) {
+                    if (object.geometry) object.geometry.dispose();
+                    if (object.material) {
+                        if (Array.isArray(object.material)) {
+                            object.material.forEach((m: THREE.Material) => m.dispose());
+                        } else {
+                            (object.material as THREE.Material).dispose();
+                        }
+                    }
+                }
+            });
+
             controls.dispose();
             renderer.dispose();
-            container.removeChild(renderer.domElement);
+            if (container.contains(renderer.domElement)) {
+                container.removeChild(renderer.domElement);
+            }
         };
     }, []);
 
@@ -250,7 +267,7 @@ export function PotreeViewer({
         // Calculate distance moved
         const deltaX = Math.abs(event.clientX - mouseStartRef.current.x);
         const deltaY = Math.abs(event.clientY - mouseStartRef.current.y);
-        const DRAG_THRESHOLD = 5; // pixels
+        const DRAG_THRESHOLD = SCENE.DRAG_THRESHOLD;
 
         mouseStartRef.current = null; // Reset
 

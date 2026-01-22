@@ -10,13 +10,13 @@ export const POINT_CLOUD = {
 
 // Annotation Marker Configuration
 export const ANNOTATION_MARKER = {
-    SIZE: 0.08,
-    SEGMENTS: 16,
-    COLOR_DEFAULT: 0x00bfff,
-    COLOR_SELECTED: 0xff00ff,
-    EMISSIVE_INTENSITY: 0.5,
-    OPACITY: 0.6,
-    SCALE_SELECTED: 2.0,
+    SIZE: 0.06,
+    SEGMENTS: 32, // Smoother spheres
+    COLOR_DEFAULT: 0x00ffff, // Bright Cyan
+    COLOR_SELECTED: 0xff0099, // Hot Pink
+    EMISSIVE_INTENSITY: 0.8, // Glowing effect
+    OPACITY: 0.8,
+    SCALE_SELECTED: 1.3,
     SCALE_DEFAULT: 1,
 } as const;
 
@@ -38,6 +38,9 @@ export const SCENE = {
     GRID_DIVISIONS: 20,
     GRID_COLOR_CENTER: 0x444444,
     GRID_COLOR_GRID: 0x333333,
+    LION_SCALE: 2.5,
+    LION_Y_OFFSET: 3.0,
+    DRAG_THRESHOLD: 5, // pixels
 } as const;
 
 // Light Configuration
@@ -52,4 +55,5 @@ export const STORAGE = {
     KEY: 'point-cloud-annotations',
     MAX_TEXT_BYTES: 256,
     VERSION: 1,
+    DEFAULT_SCENE_ID: 'lion',
 } as const;

@@ -12,7 +12,7 @@ import { STORAGE } from '../constants';
 
 const USE_API = import.meta.env.VITE_STORAGE_PROVIDER === 'api';
 const API_URL = import.meta.env.VITE_API_URL || '/.netlify/functions/annotations';
-const DEFAULT_SCENE_ID = 'lion'; // Default scene for the lion point cloud
+const DEFAULT_SCENE_ID = STORAGE.DEFAULT_SCENE_ID;
 
 /**
  * Validates and truncates text to fit within byte limit.

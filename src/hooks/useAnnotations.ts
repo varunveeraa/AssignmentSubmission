@@ -6,10 +6,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { Annotation } from '../types/annotation';
+import { STORAGE } from '../constants';
 import * as storage from '../services/storage';
 
 // Default scene ID for the lion point cloud
-const DEFAULT_SCENE_ID = 'lion';
+const DEFAULT_SCENE_ID = STORAGE.DEFAULT_SCENE_ID;
 
 export function useAnnotations() {
     const [annotations, setAnnotations] = useState<Annotation[]>([]);

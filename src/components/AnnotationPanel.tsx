@@ -70,8 +70,9 @@ export function AnnotationPanel({
                                     onDelete(annotation.id);
                                 }}
                                 title="Delete annotation"
+                                aria-label="Delete annotation"
                             >
-                                🗑️
+                                <span aria-hidden="true">🗑️</span>
                             </button>
                         </div>
                     ))
