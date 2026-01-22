@@ -10,13 +10,13 @@ export const POINT_CLOUD = {
 
 // Annotation Marker Configuration
 export const ANNOTATION_MARKER = {
-    SIZE: 0.35,
+    SIZE: 0.08,
     SEGMENTS: 16,
-    COLOR_DEFAULT: 0x00ff88,
-    COLOR_SELECTED: 0xff4488,
-    EMISSIVE_INTENSITY: 0.3,
-    OPACITY: 0.9,
-    SCALE_SELECTED: 1.5,
+    COLOR_DEFAULT: 0x00bfff,
+    COLOR_SELECTED: 0xff00ff,
+    EMISSIVE_INTENSITY: 0.5,
+    OPACITY: 0.6,
+    SCALE_SELECTED: 2.0,
     SCALE_DEFAULT: 1,
 } as const;
 
@@ -25,7 +25,7 @@ export const CAMERA = {
     FOV: 60,
     NEAR: 0.1,
     FAR: 1000,
-    POSITION: { x: 12, y: 8, z: 12 },
+    POSITION: { x: 8, y: 5, z: 8 },
     MIN_DISTANCE: 1,
     MAX_DISTANCE: 100,
     DAMPING_FACTOR: 0.05,

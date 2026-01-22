@@ -133,15 +133,14 @@ export async function addAnnotation(annotation: Annotation): Promise<Annotation[
     return annotations;
 }
 
-export async function deleteAnnotation(id: string): Promise<Annotation[]> {
+export async function deleteAnnotation(id: string): Promise<void> {
     if (USE_API) {
         await deleteFromAPI(id);
-        return loadFromAPI();
+        return;
     }
 
     const annotations = loadFromLocalStorage().filter(a => a.id !== id);
     saveToLocalStorage(annotations);
-    return annotations;
 }
 
 export async function updateAnnotation(id: string, updates: Partial<Annotation>): Promise<Annotation[]> {

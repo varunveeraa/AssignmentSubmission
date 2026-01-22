@@ -236,8 +236,28 @@ export function PotreeViewer({
     }, [annotations, selectedAnnotation]);
 
     // Handle click events
-    const handleClick = useCallback((event: React.MouseEvent) => {
-        if (!containerRef.current || !cameraRef.current || !sceneRef.current) return;
+    const mouseStartRef = useRef<{ x: number; y: number } | null>(null);
+
+    // Track mouse down to detect drags vs clicks
+    const handleMouseDown = useCallback((event: React.MouseEvent) => {
+        mouseStartRef.current = { x: event.clientX, y: event.clientY };
+    }, []);
+
+    // Handle click events (only if not a drag)
+    const handleMouseUp = useCallback((event: React.MouseEvent) => {
+        if (!containerRef.current || !cameraRef.current || !sceneRef.current || !mouseStartRef.current) return;
+
+        // Calculate distance moved
+        const deltaX = Math.abs(event.clientX - mouseStartRef.current.x);
+        const deltaY = Math.abs(event.clientY - mouseStartRef.current.y);
+        const DRAG_THRESHOLD = 5; // pixels
+
+        mouseStartRef.current = null; // Reset
+
+        // If moved more than threshold, it's a drag (rotate/pan) - ignore click
+        if (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD) {
+            return;
+        }
 
         const rect = containerRef.current.getBoundingClientRect();
         mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -256,7 +276,7 @@ export function PotreeViewer({
         }
 
         // Then check for point cloud clicks
-        if (pointCloudRef.current) {
+        if (pointCloudRef.current && annotateMode) { // Only allow creating annotations in annotate mode
             const pointIntersects = raycasterRef.current.intersectObject(pointCloudRef.current);
 
             if (pointIntersects.length > 0) {
@@ -268,14 +288,15 @@ export function PotreeViewer({
                 });
             }
         }
-    }, [onPointClick, onAnnotationClick]);
+    }, [onPointClick, onAnnotationClick, annotateMode]);
 
     return (
         <div className="potree-viewer-container">
             <div
                 ref={containerRef}
                 className={`potree-viewer ${annotateMode ? 'annotate-mode' : 'explore-mode'}`}
-                onClick={handleClick}
+                onMouseDown={handleMouseDown}
+                onMouseUp={handleMouseUp}
                 role="application"
                 aria-label="3D Point Cloud Viewer - Click to add annotations"
                 tabIndex={0}

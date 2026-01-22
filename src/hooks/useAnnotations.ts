@@ -60,15 +60,20 @@ export function useAnnotations() {
     }, []);
 
     const deleteAnnotation = useCallback(async (id: string) => {
+        // Optimistic update: immediately remove from UI
+        const previousAnnotations = annotations;
+        setAnnotations(prev => prev.filter(a => a.id !== id));
+        if (selectedAnnotation === id) setSelectedAnnotation(null);
+
         try {
-            const updated = await storage.deleteAnnotation(id);
-            setAnnotations(updated);
-            if (selectedAnnotation === id) setSelectedAnnotation(null);
+            await storage.deleteAnnotation(id);
         } catch (err) {
+            // Rollback on error
+            setAnnotations(previousAnnotations);
             setError(err instanceof Error ? err.message : 'Failed to delete');
             throw err;
         }
-    }, [selectedAnnotation]);
+    }, [annotations, selectedAnnotation]);
 
     const updateAnnotation = useCallback(async (id: string, updates: Partial<Annotation>) => {
         try {
