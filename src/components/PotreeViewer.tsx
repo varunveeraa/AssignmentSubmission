@@ -1,9 +1,9 @@
 import { useEffect, useRef, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { Potree, PointCloudOctree } from 'potree-core';
 import type { Annotation } from '../types/annotation';
-import { POINT_CLOUD, ANNOTATION_MARKER, CAMERA, SCENE, LIGHTS } from '../constants';
-import { generateLionPointCloud } from '../utils/pointCloudGenerator';
+import { ANNOTATION_MARKER, CAMERA, SCENE, LIGHTS } from '../constants';
 
 interface PotreeViewerProps {
     annotations: Annotation[];
@@ -11,45 +11,6 @@ interface PotreeViewerProps {
     onPointClick: (position: { x: number; y: number; z: number }) => void;
     onAnnotationClick: (id: string) => void;
     annotateMode: boolean;
-}
-
-// Create a sample point cloud (lion-like shape)
-function createSamplePointCloud(scene: THREE.Scene, pointCloudRef: React.MutableRefObject<THREE.Points | null>) {
-    const numPoints = POINT_CLOUD.NUM_POINTS;
-
-    const { positions, colors } = generateLionPointCloud(numPoints);
-
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-    const material = new THREE.PointsMaterial({
-        size: POINT_CLOUD.POINT_SIZE,
-        vertexColors: true,
-        sizeAttenuation: true,
-    });
-
-    const points = new THREE.Points(geometry, material);
-
-    // Rotate to face camera better if needed, or adjust camera
-    // My generator aligns body along Z, so lion faces Z (or -Z).
-    // Let's rotate it so it stands on XZ plane and faces X or something standard.
-    // The generator produces:
-    // Body along Z (horizontal?)
-    // Legs -Y relative to body?
-    // Let's check generator axis: 
-    // Cylinder rot PI/2 on X -> Aligned with Z? No. Cyl default is Y. Rot on X makes it Z. Correct.
-    // Legs pos y = -0.6. So "up" is Y.
-    // So it stands UP on Y axis.
-
-    // Scale the lion to be bigger as requested
-    points.scale.set(SCENE.LION_SCALE, SCENE.LION_SCALE, SCENE.LION_SCALE);
-
-    // Raise the lion so it stands on the grid
-    points.position.y = SCENE.LION_Y_OFFSET;
-
-    scene.add(points);
-    pointCloudRef.current = points;
 }
 
 // Create annotation marker mesh
@@ -130,7 +91,8 @@ export function PotreeViewer({
     const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
     const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
     const controlsRef = useRef<OrbitControls | null>(null);
-    const pointCloudRef = useRef<THREE.Points | null>(null);
+    const potreeRef = useRef<Potree | null>(null);
+    const pointCloudsRef = useRef<PointCloudOctree[]>([]);
     const annotationMarkersRef = useRef<Map<string, THREE.Mesh>>(new Map());
     const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster());
     const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2());
@@ -194,12 +156,78 @@ export function PotreeViewer({
         );
         scene.add(gridHelper);
 
-        // Create sample point cloud (lion-like shape)
-        createSamplePointCloud(scene, pointCloudRef);
+        // Potree Initialization
+        const potree = new Potree();
+        potree.pointBudget = 2_000_000;
+        potreeRef.current = potree;
+
+        console.log('Starting Potree load...');
+
+        potree.loadPointCloud(
+            'metadata.json',
+            '/potree-data/pointclouds/lion/'
+        ).then((pco: PointCloudOctree) => {
+            console.log('Potree: Point cloud loaded!', pco);
+            const pointcloud = pco;
+            const material = pointcloud.material;
+
+            material.size = 1;
+            material.pointSizeType = 2; // Adaptive
+            material.shape = 0; // Square
+            material.activeAttributeName = 'rgba';
+
+            // Fix orientation: Potree data is often Z-up, Three.js is Y-up
+            pointcloud.rotation.x = -Math.PI / 2;
+
+            scene.add(pointcloud);
+            pointCloudsRef.current = [pointcloud];
+
+            if (pointcloud.boundingBox) {
+                // Update matrix to account for rotation
+                pointcloud.updateMatrixWorld(true);
+
+                const center = pointcloud.boundingBox.getCenter(new THREE.Vector3());
+                const size = pointcloud.boundingBox.getSize(new THREE.Vector3());
+
+                // We need the world center for the camera
+                const centerWorld = center.clone().applyMatrix4(pointcloud.matrixWorld);
+
+                console.log('Potree: Bounding Box Center', center);
+                console.log('Potree: World Center', centerWorld);
+                console.log('Potree: Bounding Box Size', size);
+
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const fov = camera.fov * (Math.PI / 180);
+                let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+                cameraZ *= 2.0;
+
+                controls.target.copy(centerWorld);
+
+                // Position camera based on transformed center
+                camera.position.set(
+                    centerWorld.x,
+                    centerWorld.y + size.y, // Look from slightly above
+                    centerWorld.z + cameraZ
+                );
+                camera.lookAt(centerWorld);
+                controls.update();
+
+                console.log('Potree: Camera set to', camera.position);
+            }
+        }).catch(err => console.error('Potree: loadPointCloud failed:', err));
 
         // Animation loop
         const animate = () => {
             requestAnimationFrame(animate);
+
+            if (potreeRef.current && pointCloudsRef.current.length > 0) {
+                potreeRef.current.updatePointClouds(
+                    pointCloudsRef.current,
+                    camera,
+                    renderer
+                );
+            }
+
             controls.update();
             renderer.render(scene, camera);
         };
@@ -219,7 +247,7 @@ export function PotreeViewer({
         return () => {
             window.removeEventListener('resize', handleResize);
 
-            // Clean up Three.js resources to prevent memory leaks
+            // Clean up
             scene.traverse((object) => {
                 if (object instanceof THREE.Mesh || object instanceof THREE.Points) {
                     if (object.geometry) object.geometry.dispose();
@@ -255,23 +283,19 @@ export function PotreeViewer({
     // Handle click events
     const mouseStartRef = useRef<{ x: number; y: number } | null>(null);
 
-    // Track mouse down to detect drags vs clicks
     const handleMouseDown = useCallback((event: React.MouseEvent) => {
         mouseStartRef.current = { x: event.clientX, y: event.clientY };
     }, []);
 
-    // Handle click events (only if not a drag)
     const handleMouseUp = useCallback((event: React.MouseEvent) => {
         if (!containerRef.current || !cameraRef.current || !sceneRef.current || !mouseStartRef.current) return;
 
-        // Calculate distance moved
         const deltaX = Math.abs(event.clientX - mouseStartRef.current.x);
         const deltaY = Math.abs(event.clientY - mouseStartRef.current.y);
         const DRAG_THRESHOLD = SCENE.DRAG_THRESHOLD;
 
-        mouseStartRef.current = null; // Reset
+        mouseStartRef.current = null;
 
-        // If moved more than threshold, it's a drag (rotate/pan) - ignore click
         if (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD) {
             return;
         }
@@ -282,7 +306,7 @@ export function PotreeViewer({
 
         raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
 
-        // First check for annotation marker clicks
+        // Check markers intersection
         const markers = Array.from(annotationMarkersRef.current.values());
         const markerIntersects = raycasterRef.current.intersectObjects(markers);
 
@@ -292,12 +316,33 @@ export function PotreeViewer({
             return;
         }
 
-        // Then check for point cloud clicks
-        if (pointCloudRef.current && annotateMode) { // Only allow creating annotations in annotate mode
-            const pointIntersects = raycasterRef.current.intersectObject(pointCloudRef.current);
+        // Check point cloud intersection
+        // Note: Generic raycaster might not hit Potree Octree perfectly without using potree's own raycasting
+        // But PointCloudOctree inherits from Object3D, Three's raycaster *can* hit bounding boxes or points if visible
+        // potree-core doesn't expose a simple high-level intersection method easily, 
+        // we might need to rely on Three.js standard raycast against the loaded points.
+        // If the points are standard THREE.Points inside the octree nodes, it should work.
 
-            if (pointIntersects.length > 0) {
-                const point = pointIntersects[0].point;
+        if (pointCloudsRef.current.length > 0 && annotateMode) {
+            // Traverse to find all Points objects
+            const pointsObjects: THREE.Points[] = [];
+            pointCloudsRef.current.forEach(pco => {
+                pco.traverse((child) => {
+                    if (child.type === 'Points') {
+                        pointsObjects.push(child as THREE.Points);
+                    }
+                });
+            });
+
+            // If traversal didn't find them (because they load dynamically), we might need to raycast against the whole group
+            // However, raycasting against massive point clouds is slow. 
+            // For now, let's try intersecting the root octree object.
+            const intersects = raycasterRef.current.intersectObjects(pointCloudsRef.current, true);
+
+            if (intersects.length > 0) {
+                // Filter for points only?
+                // The intersect object will be one of the loaded nodes
+                const point = intersects[0].point;
                 onPointClick({
                     x: point.x,
                     y: point.y,
@@ -321,7 +366,7 @@ export function PotreeViewer({
             <div className="viewer-instructions" aria-live="polite">
                 <p>🔄 Drag to rotate • Scroll to zoom • Right-click to pan</p>
                 {annotateMode ? (
-                    <p className="annotate-hint">✏️ Click on the lion to add an annotation</p>
+                    <p className="annotate-hint">✏️ Click on the point cloud to add an annotation</p>
                 ) : (
                     <p className="explore-hint">👁️ Exploring mode — use the toggle above to annotate</p>
                 )}
